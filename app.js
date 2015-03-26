@@ -124,7 +124,7 @@ app.get('/send-emails', function (req, res, next) {
         var emails = emailsToBeSent // uniq your to be sent email recipients
           , totalEmails = emails.length;
 
-        if (totalEmails >= 10) {
+        if (totalEmails >= 10) {  // do not create more than one process if there are not more than 10 emails
 
           /**
            * Start creating child processes and add event listeners to each one of them
@@ -219,7 +219,7 @@ app.get('/send-emails', function (req, res, next) {
 var getEmailsInChunks = function getEmailsInChunks (emails, noOfProcesses) {
 
   /**
-   * example in comments- 
+   * example in comments -
    */
 
   // no of emails = 10055
