@@ -6,7 +6,7 @@
 module.exports = {
 
   mongodb: {
-    uri: 'mongodb://localhost/queue_db' // db uri to connect
+    uri: 'mongodb://localhost/queue_db' // db uri to connect. Name of the database is queue_db, please change it to your liking
   },
 
   server: {
