@@ -16,7 +16,7 @@ module.exports = {
   // email gun config
   emailGun: {
 
-    // no of child processes 
+    // no of child processes, noOfProcesses > 0
     noOfProcesses: 10,
 
     // the db query to run to find emails which are to be sent

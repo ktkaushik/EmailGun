@@ -102,6 +102,8 @@ app.get('/send-emails', function (req, res, next) {
        */
       if (emailsToBeSent) {
 
+        if (emailsToBeSent.length === 0) return res.json({message: 'No emails to be sent'});
+
         /**
          * Send a response to the client to not keep in waiting
          */
@@ -119,29 +121,48 @@ app.get('/send-emails', function (req, res, next) {
         var emails = _.uniq(emailsToBeSent, 'toEmailAddress') // uniq your to be sent email recipients
           , totalEmails = emails.length;
 
-        /**
-         * Start creating child processes and add event listeners to each one of them
-         */
-        for (i = noOfProcesses; i > 0; i--) {
+        var emails = emailsToBeSent // uniq your to be sent email recipients
+          , totalEmails = emails.length;
+
+        if (totalEmails >= 10) {
 
           /**
-           * Create a child process each time using fork
-           * this child process would run the small piece of code responsible for sending
-           * out emails in the email_gun_child_process.js file
+           * Start creating child processes and add event listeners to each one of them
            */
-          processes[i] = childProcess.fork(__dirname + '/email_gun_child_process.js');
-
-          /**
-           * Add a listener whenever the process sends out information
-           */
-          processes[i].on('message', function(data) {
+          for (i = noOfProcesses; i > 0; i--) {
 
             /**
-             * Increase the counter to determine the no of emails processed (both sent and failed)
-             * If the counter comes to equal the no of emails that were to be processed then
-             * we call the endProcesses function to end the childprocesses
-             * Else we increase the counter
+             * Create a child process each time using fork
+             * this child process would run the small piece of code responsible for sending
+             * out emails in the email_gun_child_process.js file
              */
+            processes[i] = childProcess.fork(__dirname + '/email_gun_child_process.js');
+
+            /**
+             * Add a listener whenever the process sends out information
+             */
+            processes[i].on('message', function(data) {
+
+              /**
+               * Increase the counter to determine the no of emails processed (both sent and failed)
+               * If the counter comes to equal the no of emails that were to be processed then
+               * we call the endProcesses function to end the childprocesses
+               * Else we increase the counter
+               */
+              (counter === totalEmails) ? endProcesses() : ++counter;
+              console.log('Total emails processed - ', counter);
+              console.log('---------------------------------------------');
+
+              /**
+               * Store the email record data which was failed to send in an array to be processed later
+               */
+              if (data.failedEmail) failedEmails.push(data.failedEmail);
+            });
+          }
+        } else {
+          processes['1'] = childProcess.fork(__dirname + '/email_gun_child_process.js');
+          processes['1'].on('message', function(data) {
+
             (counter === totalEmails) ? endProcesses() : ++counter;
             console.log('Total emails processed - ', counter);
             console.log('---------------------------------------------');
@@ -150,6 +171,7 @@ app.get('/send-emails', function (req, res, next) {
              * Store the email record data which was failed to send in an array to be processed later
              */
             if (data.failedEmail) failedEmails.push(data.failedEmail);
+
           });
         }
 
@@ -159,7 +181,7 @@ app.get('/send-emails', function (req, res, next) {
          *   emailsInChunks = [[1000 emails], [1000 emails], [1000 emails], [1000 emails].. n]
          *   where n = noOfProcesses which can be configured from the env config files
          */
-        var emailsInChunks = getEmailsInChunks(emails, noOfProcesses);
+        var emailsInChunks = (totalEmails >= 10) ? getEmailsInChunks(emails, noOfProcesses) : [emails];
 
         var len = emailsInChunks.length - 1
           , j = 1
@@ -169,7 +191,8 @@ app.get('/send-emails', function (req, res, next) {
          * Run the loop to send out those chunks of emails to each process.
          * Information to the child processes are sent only and only once.
          */
-        for (i = len; i > 0; i--) {
+        for (i = len; i >= 0; i--) {
+
           var emails = emailsInChunks[i];
           if (i >= 0) {
 
@@ -180,7 +203,9 @@ app.get('/send-emails', function (req, res, next) {
              * - child process number
              */
             processes[j].send({ emails: emails, config: config, processNo: j});
-            j = (j === 10) ? 1 : ++j; // reset counter for child process
+            if (totalEmails >= 10) {
+              j = (j === 10) ? 1 : ++j; // reset counter for child process
+            }
           }
         }
       }
@@ -194,7 +219,7 @@ app.get('/send-emails', function (req, res, next) {
 var getEmailsInChunks = function getEmailsInChunks (emails, noOfProcesses) {
 
   /**
-   * example - 
+   * example in comments- 
    */
 
   // no of emails = 10055

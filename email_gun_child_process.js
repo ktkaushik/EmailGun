@@ -26,10 +26,10 @@ var emailGun = function emailGun (data) {
    */
   var transporter = nodemailer.createTransport(smtpTransport(data.config.emailGun.transporter));
 
-  var len = data.emails.length
+  var len = data.emails.length - 1
     , processNo = data.processNo;
 
-  for (var i = len; i > 0; i--) {
+  for (var i = len; i >= 0; i--) {
 
     var email = data.emails[i];
 
