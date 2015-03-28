@@ -121,8 +121,6 @@ app.get('/send-emails', function (req, res, next) {
         var emails = _.uniq(emailsToBeSent, 'toEmailAddress') // uniq your to be sent email recipients
           , totalEmails = emails.length;
 
-        var emails = emailsToBeSent // uniq your to be sent email recipients
-          , totalEmails = emails.length;
 
         if (totalEmails >= 10) {  // do not create more than one process if there are not more than 10 emails
 
